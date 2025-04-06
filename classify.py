@@ -252,6 +252,51 @@ def do_stage_1(X_tr, X_ts, Y_tr, Y_ts):
     pred = model.predict(X_ts)
     return pred
 
+###############################
+#writing stuff for the assignment, will probably end up moving things around
+
+
+#2.1: Decision Tree 
+
+def decisionTree():
+       max_depth = 0
+       min_node = 0
+
+def gini_impurity():
+    pass
+
+def findSplitLocation():
+    pass
+
+#To build your decision tree, keep splitting the dataset and resulting splitted groups until each split reaches one of the following conditions:
+#○ The branch has reached the max_depth.
+#○ The number of samples in the group to split is less than the min_node.
+#○ The optimal split results in a group with no samples, in which case use the parent node.
+#○ The optimal split has a worse Gini impurity than the parent node, in which case use the parent node.
+
+#To predict, navigate the tree using your test sample until you reach a leaf node.
+#The predicted class is the mode of the sample labels in that node.
+
+#2.2: Random Forest
+
+def randomForest():
+    
+    #Number of decision trees
+    n_trees = 0
+
+    #The percentage of the dataset to use when building each tree
+    data_frac = 0
+
+    #The number of features to sample when performing splits during tree building
+    feature_subcount = 0
+
+#Build n_trees trees using following process:
+
+#○ Before building the tree, build a subset of the data at data_frac size by random sampling with replacement from training samples.
+#○ Next, the tree can be built normally with one modification: When evaluating the Gini impurity of each test split, use only a subset of the features to calculate the impurity. 
+# Like you did when you built the data subset, randomly sample features with replacement until you have feature_subcount features, and then calculate the impurity
+
+#Predict by voting: To evaluate a test sample, run it through each tree to gather class ‘votes’. The class with the most votes is the final classification for the test sample.
 
 def main(args):
     """
