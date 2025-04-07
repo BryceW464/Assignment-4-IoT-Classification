@@ -257,6 +257,7 @@ def do_stage_1(X_tr, X_ts, Y_tr, Y_ts):
     max_depth = 0
     min_node = 0
     
+
     #To predict, navigate the tree using your test sample until you reach a leaf node.
     #The predicted class is the mode of the sample labels in that node.
 
@@ -270,11 +271,50 @@ def decisionTree():
         #optimal split has a worse gini impurity than the parent node (use the parent node)
     pass
 
-def gini_impurity():
-    # 30 total classes (each device in list_of_devices.txt)
-    # Gini impurity calc = 1 - 
-    # Calc gini impurity given two groups (split)
-    return None
+
+def child_node_gini_impurity(group_labels):
+    #Pseudocode to find impurity of child nodes:
+        #childScore = 1 - (number of each class present)^2
+        #Example: Group 1 has 10 samples, of which 3 classes are present
+        #5 samples in class 5, 3 samples in class 12, and 2 samples in class 29.
+        # childScore = 1 - (0.5^2 + 0.3^2 + 0.2^2) = 0.62
+
+    classDict = {}
+    for label in group_labels:
+        if label in classDict.keys():
+            classDict[label] = classDict[label] + 1
+        else:
+            classDict[label] = 1
+
+    baseImpurity = 1
+    totalSampleCount = sum(classDict.values())
+    for classCount in classDict.values():
+        baseImpurity -= (classCount / totalSampleCount) ** 2
+
+    return baseImpurity
+
+
+
+def split_gini_impurity(group1Labels, group2Labels):
+        #Pseudocode to find impurity of a split:
+        #group1Count = number of samples in group 1
+        #group2Count = number of samples in group 2
+        #totalCount = total number of samples across both groups
+        #G1 = impurity score of the left child node
+        #G2 = impurity score of the right child node
+
+        #splitScore = n1/n (G1) + n2/2 (G2)
+
+    group1Count = len(group1Labels)
+    group2Count = len(group2Labels)
+    totalCount = group1Count + group2Count
+
+    g1 = child_node_gini_impurity(group1Labels)
+    g2 = child_node_gini_impurity(group2Labels)
+
+    score = (group1Count / totalCount) * g1 + (group2Count / totalCount) * g2
+    
+    return score
 
 def findSplitLocation():
     #Generate split numbers to check
