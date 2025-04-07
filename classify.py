@@ -250,37 +250,37 @@ def do_stage_1(X_tr, X_ts, Y_tr, Y_ts):
     print("RF accuracy = {}".format(score))
 
     pred = model.predict(X_ts)
+
+    ################
+    #2.1 (Decision Tree)
+
+    max_depth = 0
+    min_node = 0
+    
+    #To predict, navigate the tree using your test sample until you reach a leaf node.
+    #The predicted class is the mode of the sample labels in that node.
+
     return pred
 
-###############################
-#writing stuff for the assignment, will probably end up moving things around
-
-
-#2.1: Decision Tree - Bryce doing this
-
 def decisionTree():
-       max_depth = 0
-       min_node = 0
+    #split dataset until each split reaches either:
+        #max depth
+        #number of samples in the group to split is less than min_node
+        #optimal split results in a group with no samples (then use the parent node)
+        #optimal split has a worse gini impurity than the parent node (use the parent node)
+    pass
 
-def gini_impurity(yesProbability, noProbability):
-    #1 - (probability of yes)^2 - (probability of no)^2
-    # total gini impurity = weighted average of all leaf impurities
-    #weight = total number of samples in the leaf / total number of people in all leaves
-    #then multiply weight by that leaf's gini impurity
-    #Do for all leaves then add them up. 
+def gini_impurity():
+    # 30 total classes (each device in list_of_devices.txt)
+    # Gini impurity calc = 1 - 
+    # Calc gini impurity given two groups (split)
     return None
 
 def findSplitLocation():
+    #Generate split numbers to check
+    #call gini_impurity() for each split and return the split with the lowest impurity value.
     pass
 
-#To build your decision tree, keep splitting the dataset and resulting splitted groups until each split reaches one of the following conditions:
-#○ The branch has reached the max_depth.
-#○ The number of samples in the group to split is less than the min_node.
-#○ The optimal split results in a group with no samples, in which case use the parent node.
-#○ The optimal split has a worse Gini impurity than the parent node, in which case use the parent node.
-
-#To predict, navigate the tree using your test sample until you reach a leaf node.
-#The predicted class is the mode of the sample labels in that node.
 
 def main(args):
     """
