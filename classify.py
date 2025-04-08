@@ -269,8 +269,6 @@ def decisionTree(X_tr, Y_tr, max_depth, min_node, cur_depth=0):
         #number of samples in the group to split is less than min_node
         #optimal split results in a group with no samples (then use the parent node)
         #optimal split has a worse gini impurity than the parent node (use the parent node)
-
-    
     return {
         'feature': None,
         'splitVal': None,
