@@ -263,13 +263,20 @@ def do_stage_1(X_tr, X_ts, Y_tr, Y_ts):
 
     return pred
 
-def decisionTree():
+def decisionTree(X_tr, Y_tr, max_depth, min_node, cur_depth=0):
     #split dataset until each split reaches either:
         #max depth
         #number of samples in the group to split is less than min_node
         #optimal split results in a group with no samples (then use the parent node)
         #optimal split has a worse gini impurity than the parent node (use the parent node)
-    pass
+
+    
+    return {
+        'feature': None,
+        'splitVal': None,
+        'leftGroup': decisionTree(X_tr, Y_tr, max_depth, min_node, cur_depth+1),
+        'rightGroup': decisionTree(X_tr, Y_tr, max_depth, min_node, cur_depth+1)
+    }
 
 
 def child_node_gini_impurity(group_labels):
