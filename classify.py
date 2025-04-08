@@ -337,13 +337,22 @@ def findSplitLocation(X_tr, X_ts, Y_tr, Y_ts):
     allValues = set()
     possibleSplits = {}
     featureBestScores = {}
+    featureBestSplits = {}
 
+    #Looping through 12 times (there are 12 features in each sample)
     for i in range(12):
+
+        #Looping through every sample in the training samples to get their values for the feature
         for sample in X_tr:
             allValues.add(sample[i])
+
+        #Sorting allValues and getting possible split points by taking the average of every 2 adjacent points
         allValues = sorted(allValues)
         for y in range(len(allValues)-1):
             possibleSplits[(allValues[y] + allValues[y+1]) / 2] = 0
+
+        #Creating the left and right child nodes. 
+        #Then going through the training samples and adding each sample to either the left or right node depending if the feature value is < our split
         leftGroup = []
         rightGroup = []
         for split in possibleSplits:
@@ -352,20 +361,37 @@ def findSplitLocation(X_tr, X_ts, Y_tr, Y_ts):
                     leftGroup.append(Y_tr[x])
                 else:
                     rightGroup.append(Y_tr[x])
-            splitScore = split_gini_impurity(leftGroup, rightGroup)
-            possibleSplits[split] = splitScore
-        possibleSplits = sorted(possibleSplits)
-        featureBestScores[i] = possibleSplits[next(iter(possibleSplits))]
             
+            #the Gini impurity score is calculated for the split
+            splitScore = split_gini_impurity(leftGroup, rightGroup)
 
+            #that score is added to the dictionary for possibleSplits
+            possibleSplits[split] = splitScore
+
+            #Variables are cleared for next loop
+            leftGroup.clear()
+            rightGroup.clear()
+
+        #Sort the possible splits : impurity scores dictionary to return a list with the lowest score at the front
+        possibleSplits = sorted(possibleSplits)
+
+        #Pulling the best score and split values and throwing them in the dictionary
+        bestSplit = possibleSplits[0][0]
+        bestScore = possibleSplits[0][1]
+        featureBestScores[i] = bestScore
+        featureBestSplits[i] = bestSplit
+
+        #variables are cleared for the next loop    
         allValues.clear()
         possibleSplits.clear()
 
+    #Sorting the best scores and returning the best feature, split, and impurity score
     featureBestScores = sorted(featureBestScores)
-    return next(iter(featureBestScores)), featureBestScores[next(iter(featureBestScores))]
-        
-        
-    
+    bestFeature = featureBestScores[0][0]
+    bestSplit = featureBestSplits[bestFeature]
+    bestScore = featureBestScores[0][1]
+
+    return bestFeature, bestSplit, bestScore
 
 
 def main(args):
