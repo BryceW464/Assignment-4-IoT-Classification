@@ -293,8 +293,6 @@ def child_node_gini_impurity(group_labels):
 
     return baseImpurity
 
-
-
 def split_gini_impurity(group1Labels, group2Labels):
         #Pseudocode to find impurity of a split:
         #group1Count = number of samples in group 1
@@ -302,7 +300,6 @@ def split_gini_impurity(group1Labels, group2Labels):
         #totalCount = total number of samples across both groups
         #G1 = impurity score of the left child node
         #G2 = impurity score of the right child node
-
         #splitScore = n1/n (G1) + n2/2 (G2)
 
     group1Count = len(group1Labels)
@@ -313,13 +310,62 @@ def split_gini_impurity(group1Labels, group2Labels):
     g2 = child_node_gini_impurity(group2Labels)
 
     score = (group1Count / totalCount) * g1 + (group2Count / totalCount) * g2
-    
+
     return score
 
-def findSplitLocation():
-    #Generate split numbers to check
-    #call gini_impurity() for each split and return the split with the lowest impurity value.
-    pass
+def findSplitLocation(X_tr, X_ts, Y_tr, Y_ts):
+    #For each feature, make a list of all values that make an appearance and order them.
+    #Take the averages between each value and store them in a list for possible splits.
+    #split the group data on each possible split into two groups.
+    #Call split_gini_impurity given the two groups and get the gini impurity
+    #the split with lowest gini impurity is chosen
+
+    #    Parameters
+    #----------
+    #X_tr : numpy array
+    #       Array containing training samples.
+    #Y_tr : numpy array
+    #       Array containing training labels.
+    #X_ts : numpy array
+    #       Array containing testing samples.
+    #Y_ts : numpy array
+    #       Array containing testing labels
+
+    #for each feature, need all possible values across all samples. Those values need to get sorted.
+    #then average between each point is thrown into possible splits and tested.
+
+    allValues = set()
+    possibleSplits = {}
+    featureBestScores = {}
+
+    for i in range(12):
+        for sample in X_tr:
+            allValues.add(sample[i])
+        allValues = sorted(allValues)
+        for y in range(len(allValues)-1):
+            possibleSplits[(allValues[y] + allValues[y+1]) / 2] = 0
+        leftGroup = []
+        rightGroup = []
+        for split in possibleSplits:
+            for x in range(len(X_tr)):
+                if sample[i] < split:
+                    leftGroup.append(Y_tr[x])
+                else:
+                    rightGroup.append(Y_tr[x])
+            splitScore = split_gini_impurity(leftGroup, rightGroup)
+            possibleSplits[split] = splitScore
+        possibleSplits = sorted(possibleSplits)
+        featureBestScores[i] = possibleSplits[next(iter(possibleSplits))]
+            
+
+        allValues.clear()
+        possibleSplits.clear()
+
+    featureBestScores = sorted(featureBestScores)
+    return next(iter(featureBestScores)), featureBestScores[next(iter(featureBestScores))]
+        
+        
+    
 
 
 def main(args):
