@@ -320,7 +320,7 @@ def split_gini_impurity(group1Labels, group2Labels):
 
     return score
 
-def findSplitLocation(X_tr, X_ts, Y_tr, Y_ts):
+def findSplitLocation(X_tr, Y_tr):
     #For each feature, make a list of all values that make an appearance and order them.
     #Take the averages between each value and store them in a list for possible splits.
     #split the group data on each possible split into two groups.
@@ -343,26 +343,30 @@ def findSplitLocation(X_tr, X_ts, Y_tr, Y_ts):
 
     allValues = set()
     possibleSplits = {}
+    splitsAndScores = []
+
+    #Dictionary mapping features to their best impurity score
     featureBestScores = {}
+    #Dictionary mapping features to their best split value
     featureBestSplits = {}
 
     #Looping through 12 times (there are 12 features in each sample)
-    for i in range(12):
+    for i in range(6):
 
         #Looping through every sample in the training samples to get their values for the feature
         for sample in X_tr:
             allValues.add(sample[i])
 
         #Sorting allValues and getting possible split points by taking the average of every 2 adjacent points
-        allValues = sorted(allValues)
-        for y in range(len(allValues)-1):
-            possibleSplits[(allValues[y] + allValues[y+1]) / 2] = 0
+        allValuesSorted = sorted(allValues)
+        for y in range(len(allValuesSorted)-1):
+            possibleSplits[(allValuesSorted[y] + allValuesSorted[y+1]) / 2] = 0
 
         #Creating the left and right child nodes. 
-        #Then going through the training samples and adding each sample to either the left or right node depending if the feature value is < our split
+        #Then for each possible split going through the training samples and adding each sample to either the left or right node depending if the feature value is < our split
         leftGroup = []
         rightGroup = []
-        for split in possibleSplits:
+        for split in possibleSplits.keys():
             for x in range(len(X_tr)):
                 if sample[i] < split:
                     leftGroup.append(Y_tr[x])
@@ -374,17 +378,20 @@ def findSplitLocation(X_tr, X_ts, Y_tr, Y_ts):
 
             #that score is added to the dictionary for possibleSplits
             possibleSplits[split] = splitScore
+            splitsAndScores.append([split, splitScore])
 
             #Variables are cleared for next loop
             leftGroup.clear()
             rightGroup.clear()
 
         #Sort the possible splits : impurity scores dictionary to return a list with the lowest score at the front
-        possibleSplits = sorted(possibleSplits)
+        theForRealBestSplitThisTime = sorted(possibleSplits.values())
+        for item in splitsAndScores:
+            if theForRealBestSplitThisTime[0] in item:
+                bestSplit = item[0]
+                bestScore = item[1]
 
         #Pulling the best score and split values and throwing them in the dictionary
-        bestSplit = possibleSplits[0][0]
-        bestScore = possibleSplits[0][1]
         featureBestScores[i] = bestScore
         featureBestSplits[i] = bestSplit
 
@@ -393,10 +400,10 @@ def findSplitLocation(X_tr, X_ts, Y_tr, Y_ts):
         possibleSplits.clear()
 
     #Sorting the best scores and returning the best feature, split, and impurity score
-    featureBestScores = sorted(featureBestScores)
-    bestFeature = featureBestScores[0][0]
-    bestSplit = featureBestSplits[bestFeature]
-    bestScore = featureBestScores[0][1]
+
+    bestScore = sorted(featureBestScores.values())[0]
+    bestSplit = sorted(featureBestSplits.values())[0]
+    bestFeature = list(featureBestSplits.keys())[list(featureBestSplits.values()).index(bestSplit)]
 
     return bestFeature, bestSplit, bestScore
 
@@ -450,6 +457,9 @@ def main(args):
     # print classification report
     print(classification_report(Y_ts, pred, target_names=le.classes_))
 
+    
+    bestFeature, bestSplit, bestScore = findSplitLocation(X_tr, Y_tr)
+    print(bestFeature, bestSplit, bestScore)
 
 if __name__ == "__main__":
     # parse cmdline args
