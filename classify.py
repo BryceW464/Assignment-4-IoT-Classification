@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from pprint import pprint
 import tqdm
+import random
 
 # Supress sklearn warnings
 def warn(*args, **kwargs):
@@ -245,33 +246,110 @@ def do_stage_1(X_tr, X_ts, Y_tr, Y_ts):
     pred : numpy array
            Final predictions on testing dataset.
     """
-    model = RandomForestClassifier(n_jobs=-1, n_estimators=1, oob_score=True)
-    model.fit(X_tr, Y_tr)
+    #model = RandomForestClassifier(n_jobs=-1, n_estimators=1, oob_score=True)
+    #model.fit(X_tr, Y_tr)
 
-    score = model.score(X_ts, Y_ts)
-    print("RF accuracy = {}".format(score))
+    #score = model.score(X_ts, Y_ts)
+    #print("RF accuracy = {}".format(score))
 
-    pred = model.predict(X_ts)
-
+    #pred = model.predict(X_ts)
     ################
     #2.1 (Decision Tree)
 
-    max_depth = 5
-    min_node = 3
+    #max_depth = 5
+    #min_node = 3
 
-    trunk = decisionTree(X_tr, Y_tr, max_depth, min_node)
+    #trunk = decisionTree(X_tr, Y_tr, max_depth, min_node)
     
+    model = randomForest(n_trees=1, data_frac=100, feature_sub=10)
 
+    model.fit(train_data=X_tr, train_labels=Y_tr)
+    
+    pred = model.predict(X_ts)
     #To predict, navigate the tree using your test sample until you reach a leaf node.
     #The predicted class is the mode of the sample labels in that node.
 
     return pred
 
+class randomForest:
+    def __init__(self, n_trees, data_frac, feature_sub):
+        self.trees = [None] * n_trees
+        self.data_frac = data_frac
+        self.feature_sub = feature_sub
+
+    def data_fracture(self, data, labels):
+        #Grab a random portion of data from the data set
+        data_frac, labels_frac = None
+        return data_frac, labels_frac
+
+    def features(self, data, labels):
+        #This is used to randomly get samples up to self.feature_sub amount, then return
+        pass
+
+    
+    def fit(self, train_data, train_labels):
+
+        #train_data_frac, train_labels_frac = data_fracture(train_data, train_labels)
+
+        for index, self.tree in enumerate(self.trees):
+            #featured_data, featured_labels = features(train_data_frac, train_labels_frac)
+            self.trees[index] = decisionTree(train_data, train_labels, 12, 5)
+
+
+    def predict(self, test_data):
+        #We will runt he data through the decision trees, figure out the classification
+        #make the guess and store those guess
+        pred = []
+        
+        for data in test_data:
+            finalVote = [1, None]
+            outcome = dict()
+
+            for nodes in self.trees:
+                value = self.checkNode(nodes, data)
+                if value in outcome:
+                    outcome[value] += 1
+                else:
+                    outcome[value] = 1
+            
+
+            if finalVote[1] == None:
+                finalVote[1] = random.choice(list(outcome.keys()))
+
+            else:
+                for key in outcome:
+                    if outcome[key] > finalVote[0]:
+                        finalVote[0] = outcome[key]
+                        finalVote[1] = key
+            
+
+            pred.append(finalVote[1])
+
+
+        return pred
+    
+    def checkNode(self, node, data):
+        if node.score <= data[node.feature]:
+            newNode = node.right
+        else:
+            newNode = node.left
+
+        if newNode == None:
+                return node.feature
+
+        if newNode.left and newNode.right == None:
+            return newNode.feature
+        
+        return self.checkNode(newNode, data)
+
+
 #Node class that makes up the decision tree
 class Node:
-    def __init__(self, df, score):
-        self.data = df
-        self.score = score
+    def __init__(self, df, score, feature, split):
+        self.data = df #
+        self.score = score #
+        self.feature = feature #feature that is split from
+        self.split = split #Value that split
         self.left = None
         self.right = None
 
@@ -279,7 +357,7 @@ class Node:
         return len(self.data)
     
     def __str__(self):
-        return f"Rows: {df.shape[0]}"
+        return f"Rows: {self.data.shape[0]}"
     
 
 def decisionTree(X_tr, Y_tr, max_depth, min_node, cur_depth=0, parent_score=1):
@@ -290,7 +368,8 @@ def decisionTree(X_tr, Y_tr, max_depth, min_node, cur_depth=0, parent_score=1):
         #optimal split has a worse gini impurity than the parent node (use the parent node)
 
     bestFeature, bestSplit, bestScore = findSplitLocation(X_tr, Y_tr)
-    node = Node(X_tr, bestScore)
+    print(bestScore, bestFeature, bestSplit)
+    node = Node(X_tr, bestScore, bestFeature, bestSplit)
 
     #If any of the conditions are met then the node is returned resulting in no left/right nodes (aka leaf node)
     if node.score >= parent_score or len(node) < min_node or cur_depth == max_depth:
@@ -437,10 +516,10 @@ def main(args):
 
     # print classification report
     print(classification_report(Y_ts, pred, target_names=le.classes_))
-
+    #print(pred)
     
-    bestFeature, bestSplit, bestScore = findSplitLocation(X_tr, Y_tr)
-    print(bestFeature, bestSplit, bestScore)
+    #bestFeature, bestSplit, bestScore = findSplitLocation(X_tr, Y_tr)
+    #print(bestFeature, bestSplit, bestScore)
 
 if __name__ == "__main__":
     # parse cmdline args
