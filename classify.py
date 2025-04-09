@@ -4,6 +4,8 @@ import json
 import argparse
 import os
 import numpy as np
+import pandas as pd
+from pprint import pprint
 import tqdm
 
 # Supress sklearn warnings
@@ -254,8 +256,10 @@ def do_stage_1(X_tr, X_ts, Y_tr, Y_ts):
     ################
     #2.1 (Decision Tree)
 
-    max_depth = 0
-    min_node = 0
+    max_depth = 5
+    min_node = 3
+
+    trunk = decisionTree(X_tr, Y_tr, max_depth, min_node)
     
 
     #To predict, navigate the tree using your test sample until you reach a leaf node.
@@ -263,18 +267,38 @@ def do_stage_1(X_tr, X_ts, Y_tr, Y_ts):
 
     return pred
 
-def decisionTree(X_tr, Y_tr, max_depth, min_node, cur_depth=0):
+#Node class that makes up the decision tree
+class Node:
+    def __init__(self, df, score):
+        self.data = df
+        self.score = score
+        self.left = None
+        self.right = None
+
+    def __len__(self):
+        return len(self.data)
+    
+    def __str__(self):
+        return f"Rows: {df.shape[0]}"
+    
+
+def decisionTree(X_tr, Y_tr, max_depth, min_node, cur_depth=0, parent_score=1):
     #split dataset until each split reaches either:
         #max depth
         #number of samples in the group to split is less than min_node
         #optimal split results in a group with no samples (then use the parent node)
         #optimal split has a worse gini impurity than the parent node (use the parent node)
-    return {
-        'feature': None,
-        'splitVal': None,
-        'leftGroup': decisionTree(X_tr, Y_tr, max_depth, min_node, cur_depth+1),
-        'rightGroup': decisionTree(X_tr, Y_tr, max_depth, min_node, cur_depth+1)
-    }
+
+    bestFeature, bestSplit, bestScore = findSplitLocation(X_tr, Y_tr)
+    node = Node(X_tr, bestScore)
+
+    #If any of the conditions are met then the node is returned resulting in no left/right nodes (aka leaf node)
+    if node.score >= parent_score or len(node) < min_node or cur_depth == max_depth:
+        return node
+
+    node.left = decisionTree(node.data[node.data[:, bestFeature] < bestSplit], Y_tr, max_depth, min_node, cur_depth+1, bestScore)
+    node.right = decisionTree(node.data[node.data[:, bestFeature] >= bestSplit], Y_tr, max_depth, min_node, cur_depth+1, bestScore)
+    return node
 
 
 def child_node_gini_impurity(group_labels):
@@ -338,72 +362,31 @@ def findSplitLocation(X_tr, Y_tr):
 
     #for each feature, need all possible values across all samples. Those values need to get sorted.
     #then average between each point is thrown into possible splits and tested.
+    allPossibleSplits = []
 
-    allValues = set()
-    possibleSplits = {}
-    splitsAndScores = []
+    #Iterating over the columns of the data and pulling unique values
+    for i in range(X_tr.shape[1]):
+        allValues = np.unique(X_tr[:, i]).tolist()
+        possibleSplits = []
 
-    #Dictionary mapping features to their best impurity score
-    featureBestScores = {}
-    #Dictionary mapping features to their best split value
-    featureBestSplits = {}
-
-    #Looping through 12 times (there are 12 features in each sample)
-    for i in range(6):
-
-        #Looping through every sample in the training samples to get their values for the feature
-        for sample in X_tr:
-            allValues.add(sample[i])
-
-        #Sorting allValues and getting possible split points by taking the average of every 2 adjacent points
-        allValuesSorted = sorted(allValues)
-        for y in range(len(allValuesSorted)-1):
-            possibleSplits[(allValuesSorted[y] + allValuesSorted[y+1]) / 2] = 0
+        #Grabbing the averages between unique values to use as possible split points
+        for y in range(len(allValues) - 1):
+            possibleSplits.append((allValues[y] + allValues[y + 1]) / 2)
 
         #Creating the left and right child nodes. 
         #Then for each possible split going through the training samples and adding each sample to either the left or right node depending if the feature value is < our split
-        leftGroup = []
-        rightGroup = []
-        for split in possibleSplits.keys():
-            for x in range(len(X_tr)):
-                if sample[i] < split:
-                    leftGroup.append(Y_tr[x])
-                else:
-                    rightGroup.append(Y_tr[x])
+        for split in possibleSplits:
+            leftGroup = [label for idx, label in enumerate(Y_tr) if idx < X_tr.shape[0] and X_tr[idx, i] < split]
+            rightGroup = [label for idx, label in enumerate(Y_tr) if idx < X_tr.shape[0] and X_tr[idx, i] >= split]
             
             #the Gini impurity score is calculated for the split
             splitScore = split_gini_impurity(leftGroup, rightGroup)
 
             #that score is added to the dictionary for possibleSplits
-            possibleSplits[split] = splitScore
-            splitsAndScores.append([split, splitScore])
+            allPossibleSplits.append((i, split, splitScore))
 
-            #Variables are cleared for next loop
-            leftGroup.clear()
-            rightGroup.clear()
-
-        #Sort the possible splits : impurity scores dictionary to return a list with the lowest score at the front
-        theForRealBestSplitThisTime = sorted(possibleSplits.values())
-        for item in splitsAndScores:
-            if theForRealBestSplitThisTime[0] in item:
-                bestSplit = item[0]
-                bestScore = item[1]
-
-        #Pulling the best score and split values and throwing them in the dictionary
-        featureBestScores[i] = bestScore
-        featureBestSplits[i] = bestSplit
-
-        #variables are cleared for the next loop    
-        allValues.clear()
-        possibleSplits.clear()
-
-    #Sorting the best scores and returning the best feature, split, and impurity score
-
-    bestScore = sorted(featureBestScores.values())[0]
-    bestSplit = sorted(featureBestSplits.values())[0]
-    bestFeature = list(featureBestSplits.keys())[list(featureBestSplits.values()).index(bestSplit)]
-
-    return bestFeature, bestSplit, bestScore
+    bestSplit = sorted(allPossibleSplits, key=lambda item: item[2])[0]
+    return bestSplit[0], bestSplit[1], bestSplit[2]
 
 
 def main(args):
