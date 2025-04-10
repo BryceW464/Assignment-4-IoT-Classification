@@ -261,7 +261,7 @@ def do_stage_1(X_tr, X_ts, Y_tr, Y_ts):
 
     #trunk = decisionTree(X_tr, Y_tr, max_depth, min_node)
     
-    model = randomForest(n_trees=1, data_frac=100, feature_sub=10)
+    model = randomForest(n_trees=1, data_frac=.6, feature_sub=10)
 
     model.fit(train_data=X_tr, train_labels=Y_tr)
     
@@ -279,21 +279,27 @@ class randomForest:
 
     def data_fracture(self, data, labels):
         #Grab a random portion of data from the data set
-        data_frac, labels_frac = None
-        return data_frac, labels_frac
 
-    def features(self, data, labels):
+        data_frac = int(len(data) * self.data_frac)
+
+        indices = np.random.choice(len(data), size=data_frac, replace=True)
+
+        data = data[indices]
+        labels = labels[indices]
+
+        return data, labels
+
+    def features(self, total_features):
         #This is used to randomly get samples up to self.feature_sub amount, then return
-        pass
+        return np.random.choice(total_features, size=self.feature_sub, replace=True)
 
     
     def fit(self, train_data, train_labels):
 
-        #train_data_frac, train_labels_frac = data_fracture(train_data, train_labels)
-
         for index, self.tree in enumerate(self.trees):
+            train_data_frac, train_labels_frac = self.data_fracture(train_data, train_labels)
             #featured_data, featured_labels = features(train_data_frac, train_labels_frac)
-            self.trees[index] = decisionTree(train_data, train_labels, 12, 5)
+            self.trees[index] = decisionTree(train_data_frac, train_labels_frac, 12, 5)
 
 
     def predict(self, test_data):
@@ -343,6 +349,7 @@ class randomForest:
         return self.checkNode(newNode, data)
 
 
+
 #Node class that makes up the decision tree
 class Node:
     def __init__(self, df, score, feature, split):
@@ -368,7 +375,6 @@ def decisionTree(X_tr, Y_tr, max_depth, min_node, cur_depth=0, parent_score=1):
         #optimal split has a worse gini impurity than the parent node (use the parent node)
 
     bestFeature, bestSplit, bestScore = findSplitLocation(X_tr, Y_tr)
-    print(bestScore, bestFeature, bestSplit)
     node = Node(X_tr, bestScore, bestFeature, bestSplit)
 
     #If any of the conditions are met then the node is returned resulting in no left/right nodes (aka leaf node)
