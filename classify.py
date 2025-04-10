@@ -374,15 +374,20 @@ def decisionTree(X_tr, Y_tr, max_depth, min_node, cur_depth=0, parent_score=1):
         #optimal split results in a group with no samples (then use the parent node)
         #optimal split has a worse gini impurity than the parent node (use the parent node)
 
+
+    print("Making node at depth:" + str(cur_depth))
     bestFeature, bestSplit, bestScore = findSplitLocation(X_tr, Y_tr)
     node = Node(X_tr, bestScore, bestFeature, bestSplit)
+    print(node.score, parent_score)
 
     #If any of the conditions are met then the node is returned resulting in no left/right nodes (aka leaf node)
     if node.score >= parent_score or len(node) < min_node or cur_depth == max_depth:
         return node
 
-    node.left = decisionTree(node.data[node.data[:, bestFeature] < bestSplit], Y_tr, max_depth, min_node, cur_depth+1, bestScore)
-    node.right = decisionTree(node.data[node.data[:, bestFeature] >= bestSplit], Y_tr, max_depth, min_node, cur_depth+1, bestScore)
+    leftMask = node.data[:, bestFeature] < bestSplit
+    rightMask = ~leftMask
+    node.left = decisionTree(node.data[leftMask], Y_tr[leftMask], max_depth, min_node, cur_depth+1, bestScore)
+    node.right = decisionTree(node.data[rightMask], Y_tr[rightMask], max_depth, min_node, cur_depth+1, bestScore)
     return node
 
 
@@ -393,21 +398,12 @@ def child_node_gini_impurity(group_labels):
         #5 samples in class 5, 3 samples in class 12, and 2 samples in class 29.
         # childScore = 1 - (0.5^2 + 0.3^2 + 0.2^2) = 0.62
 
-    classDict = {}
-    for label in group_labels:
-        if label in classDict.keys():
-            classDict[label] = classDict[label] + 1
-        else:
-            classDict[label] = 1
+    _, counts = np.unique(group_labels, return_counts=True)
+    probability = counts / counts.sum()
+    return 1 - np.sum(probability ** 2)
 
-    baseImpurity = 1
-    totalSampleCount = sum(classDict.values())
-    for classCount in classDict.values():
-        baseImpurity -= (classCount / totalSampleCount) ** 2
 
-    return baseImpurity
-
-def split_gini_impurity(group1Labels, group2Labels):
+def split_gini_impurity(X_tr, Y_tr, feature, split):
         #Pseudocode to find impurity of a split:
         #group1Count = number of samples in group 1
         #group2Count = number of samples in group 2
@@ -416,14 +412,18 @@ def split_gini_impurity(group1Labels, group2Labels):
         #G2 = impurity score of the right child node
         #splitScore = n1/n (G1) + n2/2 (G2)
 
-    group1Count = len(group1Labels)
-    group2Count = len(group2Labels)
-    totalCount = group1Count + group2Count
+    #Determines the values for the left/right group. The ~ denotes the inverse 
+    leftMask = X_tr[:, feature] <= split
+    rightMask = ~leftMask
 
-    g1 = child_node_gini_impurity(group1Labels)
-    g2 = child_node_gini_impurity(group2Labels)
-
-    score = (group1Count / totalCount) * g1 + (group2Count / totalCount) * g2
+    #Grabbing the associated label data which the masked/filtered data
+    leftGroup = Y_tr[leftMask]
+    rightGroup = Y_tr[rightMask]
+    
+    #the Gini impurity score is calculated for the split
+    leftGini = child_node_gini_impurity(leftGroup)
+    rightGini = child_node_gini_impurity(rightGroup)
+    score = (leftMask.sum() * leftGini + rightMask.sum() * rightGini) / X_tr.shape[0]
 
     return score
 
@@ -445,32 +445,21 @@ def findSplitLocation(X_tr, Y_tr):
     #Y_ts : numpy array
     #       Array containing testing labels
 
-    #for each feature, need all possible values across all samples. Those values need to get sorted.
-    #then average between each point is thrown into possible splits and tested.
-    allPossibleSplits = []
+    #Values in order are: The feature, the value of which the split is occuring, and the gini impurity score ie: Feature, SplitVal, Score
+    bestSplit = (None, None, 1)
 
     #Iterating over the columns of the data and pulling unique values
     for i in range(X_tr.shape[1]):
         allValues = np.unique(X_tr[:, i]).tolist()
-        possibleSplits = []
-
-        #Grabbing the averages between unique values to use as possible split points
-        for y in range(len(allValues) - 1):
-            possibleSplits.append((allValues[y] + allValues[y + 1]) / 2)
 
         #Creating the left and right child nodes. 
         #Then for each possible split going through the training samples and adding each sample to either the left or right node depending if the feature value is < our split
-        for split in possibleSplits:
-            leftGroup = [label for idx, label in enumerate(Y_tr) if idx < X_tr.shape[0] and X_tr[idx, i] < split]
-            rightGroup = [label for idx, label in enumerate(Y_tr) if idx < X_tr.shape[0] and X_tr[idx, i] >= split]
-            
+        for split in allValues:            
             #the Gini impurity score is calculated for the split
-            splitScore = split_gini_impurity(leftGroup, rightGroup)
+            splitScore = split_gini_impurity(X_tr, Y_tr, i, split)
+            if splitScore < bestSplit[2]:
+                bestSplit = (i, split, splitScore)
 
-            #that score is added to the dictionary for possibleSplits
-            allPossibleSplits.append((i, split, splitScore))
-
-    bestSplit = sorted(allPossibleSplits, key=lambda item: item[2])[0]
     return bestSplit[0], bestSplit[1], bestSplit[2]
 
 
