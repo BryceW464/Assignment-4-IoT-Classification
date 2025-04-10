@@ -8,6 +8,7 @@ import pandas as pd
 from pprint import pprint
 import tqdm
 import random
+from scipy import stats
 
 # Supress sklearn warnings
 def warn(*args, **kwargs):
@@ -312,11 +313,12 @@ class randomForest:
             outcome = dict()
 
             for nodes in self.trees:
-                value = self.checkNode(nodes, data)
-                if value in outcome:
-                    outcome[value] += 1
+                label_values = self.checkNode(nodes, data)
+                mode_result = stats.mode(label_values, keepdims=True)
+                if mode_result.mode[0] in outcome:
+                    outcome[mode_result.mode[0]] += 1
                 else:
-                    outcome[value] = 1
+                    outcome[mode_result.mode[0]] = 1
             
 
             if finalVote[1] == None:
@@ -335,16 +337,16 @@ class randomForest:
         return pred
     
     def checkNode(self, node, data):
-        if node.score <= data[node.feature]:
+        if node.split <= data[node.feature]:
             newNode = node.right
         else:
             newNode = node.left
 
         if newNode == None:
-                return node.feature
+                return node.data_labels
 
         if newNode.left and newNode.right == None:
-            return newNode.feature
+            return newNode.data_labels
         
         return self.checkNode(newNode, data)
 
@@ -353,9 +355,9 @@ class randomForest:
 #Node class that makes up the decision tree
 class Node:
     def __init__(self, df, data_labels, score, feature, split):
-        self.data = df #
-        self.data_labels = data_labels
-        self.score = score #
+        self.data = df #Data from the node
+        self.data_labels = data_labels #classifications of the node
+        self.score = score #gini-impurity
         self.feature = feature #feature that is split from
         self.split = split #Value that split
         self.left = None
@@ -376,10 +378,9 @@ def decisionTree(X_tr, Y_tr, max_depth, min_node, cur_depth=0, parent_score=1):
         #optimal split has a worse gini impurity than the parent node (use the parent node)
 
 
-    print("Making node at depth:" + str(cur_depth))
+    #print("Making node at depth:" + str(cur_depth))
     bestFeature, bestSplit, bestScore = findSplitLocation(X_tr, Y_tr)
     node = Node(X_tr, Y_tr, bestScore, bestFeature, bestSplit)
-    print(node.score, parent_score)
 
     #If any of the conditions are met then the node is returned resulting in no left/right nodes (aka leaf node)
     if node.score >= parent_score or len(node) < min_node or cur_depth == max_depth:
