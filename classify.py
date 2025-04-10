@@ -344,6 +344,9 @@ class randomForest:
 
         if newNode == None:
                 return node.data_labels
+        
+        if newNode.split == None:
+            return node.data_labels
 
         if newNode.left and newNode.right == None:
             return newNode.data_labels
@@ -382,6 +385,7 @@ def decisionTree(X_tr, Y_tr, max_depth, min_node, cur_depth=0, parent_score=1):
     bestFeature, bestSplit, bestScore = findSplitLocation(X_tr, Y_tr)
     node = Node(X_tr, Y_tr, bestScore, bestFeature, bestSplit)
 
+    
     #If any of the conditions are met then the node is returned resulting in no left/right nodes (aka leaf node)
     if node.score >= parent_score or len(node) < min_node or cur_depth == max_depth:
         return node
