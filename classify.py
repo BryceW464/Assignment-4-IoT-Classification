@@ -352,8 +352,9 @@ class randomForest:
 
 #Node class that makes up the decision tree
 class Node:
-    def __init__(self, df, score, feature, split):
+    def __init__(self, df, data_labels, score, feature, split):
         self.data = df #
+        self.data_labels = data_labels
         self.score = score #
         self.feature = feature #feature that is split from
         self.split = split #Value that split
@@ -377,7 +378,7 @@ def decisionTree(X_tr, Y_tr, max_depth, min_node, cur_depth=0, parent_score=1):
 
     print("Making node at depth:" + str(cur_depth))
     bestFeature, bestSplit, bestScore = findSplitLocation(X_tr, Y_tr)
-    node = Node(X_tr, bestScore, bestFeature, bestSplit)
+    node = Node(X_tr, Y_tr, bestScore, bestFeature, bestSplit)
     print(node.score, parent_score)
 
     #If any of the conditions are met then the node is returned resulting in no left/right nodes (aka leaf node)
