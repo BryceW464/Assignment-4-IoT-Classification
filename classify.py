@@ -9,6 +9,7 @@ from pprint import pprint
 import tqdm
 import random
 from scipy import stats
+import matplotlib.pyplot as plt
 
 # Supress sklearn warnings
 def warn(*args, **kwargs):
@@ -262,7 +263,7 @@ def do_stage_1(X_tr, X_ts, Y_tr, Y_ts):
 
     #trunk = decisionTree(X_tr, Y_tr, max_depth, min_node)
     
-    model = randomForest(n_trees=1, data_frac=.6, feature_sub=10)
+    model = randomForest(n_trees=2, data_frac=.6, feature_sub=0)
 
     model.fit(train_data=X_tr, train_labels=Y_tr)
     
@@ -274,9 +275,9 @@ def do_stage_1(X_tr, X_ts, Y_tr, Y_ts):
 
 class randomForest:
     def __init__(self, n_trees, data_frac, feature_sub):
-        self.trees = [None] * n_trees
-        self.data_frac = data_frac
-        self.feature_sub = feature_sub
+        self.trees = [None] * n_trees #number of trees, set to None for now
+        self.data_frac = data_frac # % of the data to use range 0-1
+        self.feature_sub = feature_sub # numnber of features to use, can be any number
 
     def data_fracture(self, data, labels):
         #Grab a random portion of data from the data set
@@ -290,17 +291,13 @@ class randomForest:
 
         return data, labels
 
-    def features(self, total_features):
-        #This is used to randomly get samples up to self.feature_sub amount, then return
-        return np.random.choice(total_features, size=self.feature_sub, replace=True)
-
     
     def fit(self, train_data, train_labels):
-
+        #Creates the trees according to the info given at model creation
         for index, self.tree in enumerate(self.trees):
             train_data_frac, train_labels_frac = self.data_fracture(train_data, train_labels)
             #featured_data, featured_labels = features(train_data_frac, train_labels_frac)
-            self.trees[index] = decisionTree(train_data_frac, train_labels_frac, 12, 5)
+            self.trees[index] = decisionTree(train_data_frac, train_labels_frac, 50, 10, self.feature_sub)
 
 
     def predict(self, test_data):
@@ -337,6 +334,7 @@ class randomForest:
         return pred
     
     def checkNode(self, node, data):
+        #This is how we recurseively go through the tree to get the info
         if node.split <= data[node.feature]:
             newNode = node.right
         else:
@@ -373,7 +371,7 @@ class Node:
         return f"Rows: {self.data.shape[0]}"
     
 
-def decisionTree(X_tr, Y_tr, max_depth, min_node, cur_depth=0, parent_score=1):
+def decisionTree(X_tr, Y_tr, max_depth, min_node, cur_depth=0, parent_score=1, feature_sub=0):
     #split dataset until each split reaches either:
         #max depth
         #number of samples in the group to split is less than min_node
@@ -382,7 +380,7 @@ def decisionTree(X_tr, Y_tr, max_depth, min_node, cur_depth=0, parent_score=1):
 
 
     #print("Making node at depth:" + str(cur_depth))
-    bestFeature, bestSplit, bestScore = findSplitLocation(X_tr, Y_tr)
+    bestFeature, bestSplit, bestScore = findSplitLocation(X_tr, Y_tr, feature_sub)
     node = Node(X_tr, Y_tr, bestScore, bestFeature, bestSplit)
 
     
@@ -403,7 +401,6 @@ def child_node_gini_impurity(group_labels):
         #Example: Group 1 has 10 samples, of which 3 classes are present
         #5 samples in class 5, 3 samples in class 12, and 2 samples in class 29.
         # childScore = 1 - (0.5^2 + 0.3^2 + 0.2^2) = 0.62
-
     _, counts = np.unique(group_labels, return_counts=True)
     probability = counts / counts.sum()
     return 1 - np.sum(probability ** 2)
@@ -433,7 +430,7 @@ def split_gini_impurity(X_tr, Y_tr, feature, split):
 
     return score
 
-def findSplitLocation(X_tr, Y_tr):
+def findSplitLocation(X_tr, Y_tr, feature_sub=0):
     #For each feature, make a list of all values that make an appearance and order them.
     #Take the averages between each value and store them in a list for possible splits.
     #split the group data on each possible split into two groups.
@@ -458,6 +455,9 @@ def findSplitLocation(X_tr, Y_tr):
     for i in range(X_tr.shape[1]):
         allValues = np.unique(X_tr[:, i]).tolist()
 
+        if feature_sub != 0 and feature_sub <= len(allValues):
+            allValues = np.random.choice(allValues, size=feature_sub, replace=True)
+
         #Creating the left and right child nodes. 
         #Then for each possible split going through the training samples and adding each sample to either the left or right node depending if the feature value is < our split
         for split in allValues:            
@@ -467,6 +467,38 @@ def findSplitLocation(X_tr, Y_tr):
                 bestSplit = (i, split, splitScore)
 
     return bestSplit[0], bestSplit[1], bestSplit[2]
+
+
+
+def plot_hyperparams_perf():
+    # Data for each hyperparameter
+    data_frac_vals = [1, 0.8, 0.6, 0.4, 0.2]
+    data_frac_acc = [0.38, 0.15, 0.33, 0.36, 0.11]
+
+    sub_features_vals = [2, 4, 6, 8, 10]
+    sub_features_acc = [0.37, 0.38, 0.35, 0.32, 0.21]
+
+    max_depth_vals = [10, 20, 30, 40, 50]
+    max_depth_acc = [0.35, 0.43, 0.44, 0.44, 0.43]
+
+    n_trees_vals = [1, 2, 3, 4, 5]
+    n_trees_acc = [0.46, 0.43, 0.33, 0.22, 0.21]
+
+    # Plot all on one graph
+    plt.figure(figsize=(10, 6))
+    
+    plt.plot(data_frac_vals, data_frac_acc, marker='o', label='Data Fraction')
+    plt.plot(sub_features_vals, sub_features_acc, marker='s', label='Sub Features')
+    plt.plot(max_depth_vals, max_depth_acc, marker='^', label='Max Depth')
+    plt.plot(n_trees_vals, n_trees_acc, marker='x', label='Number of Trees')
+
+    plt.title('Accuracy vs. Hyperparameter Settings')
+    plt.xlabel('Hyperparameter Value')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
 
 
 def main(args):
@@ -517,10 +549,9 @@ def main(args):
 
     # print classification report
     print(classification_report(Y_ts, pred, target_names=le.classes_))
-    #print(pred)
     
-    #bestFeature, bestSplit, bestScore = findSplitLocation(X_tr, Y_tr)
-    #print(bestFeature, bestSplit, bestScore)
+    #plot_hyperparams_perf() #uncomment for the plots of hyper params
+
 
 if __name__ == "__main__":
     # parse cmdline args
