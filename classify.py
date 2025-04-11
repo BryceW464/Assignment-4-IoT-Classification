@@ -10,6 +10,8 @@ import tqdm
 import random
 from scipy import stats
 import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+import seaborn
 
 # Supress sklearn warnings
 def warn(*args, **kwargs):
@@ -550,6 +552,34 @@ def main(args):
     # print classification report
     print(classification_report(Y_ts, pred, target_names=le.classes_))
     
+    device_names = []
+
+    with open('./list_of_devices.txt') as f:
+        lines = f.readlines()[1:]  # Skip the header
+
+    for line in lines:
+        stripped = line.strip()
+        
+        # Skip lines that are only MAC addresses or continuation lines
+        if not stripped or len(stripped.split()) == 1:
+            continue
+        
+        # Device name is before the MAC address — take all content before the MAC pattern
+        parts = stripped.split()
+        if any(':' in part and len(part) == 17 for part in parts):
+            # Join all parts before the MAC address
+            mac_index = next(i for i, p in enumerate(parts) if ':' in p and len(p) == 17)
+            name_parts = parts[:mac_index]
+            device_name = ' '.join(name_parts)
+            if device_name == '':
+                pass
+            device_names.append(device_name)
+    filtered_names = [name for i, name in enumerate(device_names) if i != 7]
+
+    seaborn.heatmap(confusion_matrix(pred, Y_ts), annot=True, fmt='d', cmap='Blues', 
+            xticklabels=filtered_names, yticklabels=filtered_names)
+    
+    plt.show()
     #plot_hyperparams_perf() #uncomment for the plots of hyper params
 
 
