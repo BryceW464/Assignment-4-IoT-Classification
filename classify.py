@@ -298,7 +298,6 @@ class randomForest:
         #Creates the trees according to the info given at model creation
         for index, self.tree in enumerate(self.trees):
             train_data_frac, train_labels_frac = self.data_fracture(train_data, train_labels)
-            #featured_data, featured_labels = features(train_data_frac, train_labels_frac)
             self.trees[index] = decisionTree(train_data_frac, train_labels_frac, 50, 10, self.feature_sub)
 
 
@@ -311,7 +310,7 @@ class randomForest:
             finalVote = [1, None]
             outcome = dict()
 
-            for nodes in self.trees:
+            for nodes in self.trees: #Gets output for each of the trees
                 label_values = self.checkNode(nodes, data)
                 mode_result = stats.mode(label_values, keepdims=True)
                 if mode_result.mode[0] in outcome:
@@ -320,7 +319,7 @@ class randomForest:
                     outcome[mode_result.mode[0]] = 1
             
 
-            if finalVote[1] == None:
+            if finalVote[1] == None: #if the trees all have different outcomes, just randomly select one
                 finalVote[1] = random.choice(list(outcome.keys()))
 
             else:
@@ -337,6 +336,7 @@ class randomForest:
     
     def checkNode(self, node, data):
         #This is how we recurseively go through the tree to get the info
+        #Checks to see if this node is the leaf node or not, and checks to see if the newest one is too
         if node.split <= data[node.feature]:
             newNode = node.right
         else:
