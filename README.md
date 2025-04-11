@@ -9,4 +9,4 @@ Please download any packages that would be necessary to run the code
 
 
 AI usage:
-Ai was used for part of this assignment, specifically for creating hte code for the plotting of the hyper parameters and the confusion matrix, out side of that, it did helped to use the np.random.choice function for the sub_features and data_fracture.
+Ai was used for part of this assignment, specifically for creating the code for plotting of the hyper parameters and the confusion matrix, outside of that, it did help to use the np.random.choice function for the sub_features and data_fracture.
